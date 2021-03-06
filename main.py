@@ -33,6 +33,11 @@ class Node:
         self.y = y
         self.parent = parent
 
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y
+
+    def __str__(self):
+        return "["+str(self.x)+", "+str(self.y) + "]"
 
 def make_board():
     global board
@@ -169,23 +174,49 @@ def get_initial_conditions(human=True):
 
 def get_neighbors(parent):
     neighbors = []
-    for i in range(-1, 1):
-        for j in range(-1, 1):
+    for i in range(-1, 2):
+        for j in range(-1, 2):
             if i == j == 0:
                 continue
             if point_valid(parent.x + i, parent.y + j, False):
-                neighbors.append(Node(parent.x, parent.y, parent))
+                new_node = Node(parent.x + i, parent.y + j, parent)
+                if new_node in nodes_visited:
+                    continue
+                neighbors.append(new_node)
     return neighbors
 
 def BFS():
     to_explore = [start]
+    while len(to_explore):
+        next_node = to_explore.pop(0)
+        print(next_node.x, next_node.y)
+        pygame.draw.circle(board, GREEN, [next_node.x * SCALE, (HEIGHT - next_node.y) * SCALE], 1 * SCALE)
+        pygame.display.update()
+        nodes_visited.append(next_node)
+        if next_node == target:
+            print("Found path")
+            return
+        new_nodes = get_neighbors(next_node)
+        for new_node in new_nodes:
+            to_explore.append(new_node)
+    print("No path")
     # target has been found
+
+def back_track():
+    next = target
+    while next != start:
+        print(next)
+        path.append(next)
+        next = next.parent
+
 
 if __name__ == "__main__":
     start, target = get_initial_conditions()
-    BFS()
     make_board()
+    BFS()
+
     pygame.display.update()
     # back track for path
     # display explored nodes and path
-    time.sleep(50)
+    print(path)
+    # time.sleep(50)
