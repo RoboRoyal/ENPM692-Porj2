@@ -1,15 +1,15 @@
 
 #Dakota Abernathy
 #ENPM692-Porj2
-import math
 
+import math
 import pygame
 import time
 from random import randint
 
 HEIGHT = 300
 WIDTH = 400
-SCALE = 1
+SCALE = 2
 
 board = None
 start = None
@@ -23,20 +23,25 @@ CYAN = (0, 255, 255)
 MAGENTA = (255, 0, 255)
 YELLOW = (255, 255, 0)
 
-class node:
+nodes_visited = []
+path = []
+
+
+class Node:
     def __init__(self, x, y, parent):
         self.x = x
         self.y = y
         self.parent = parent
 
-def makeBoard():
+
+def make_board():
     global board
     pygame.init()
     board = pygame.display.set_mode((int(WIDTH * SCALE), int(HEIGHT * SCALE)))
     pygame.display.set_caption("Path finding algorithm")
     board.fill(WHITE)
 
-    #
+    # easy
     pygame.draw.circle(board, BLACK, [90 * SCALE, (HEIGHT - 70) * SCALE], 35 * SCALE)
     pygame.draw.ellipse(board, BLACK, [186 * SCALE, (HEIGHT - 175) * SCALE, 120 * SCALE, 60 * SCALE], 0 * SCALE)
 
@@ -108,12 +113,12 @@ def in_obstacle(x, y):
     return False
 
 
-def point_valid(x, y, talk = True):
+def point_valid(x, y, talk=True):
     if x < 0 or x >= WIDTH:
         if talk:
             print("X is outside of boundary [0,", WIDTH, "]")
         return False
-    if y < 0 or y >= HEIGHT:
+    if y < 0 or y > HEIGHT:
         if talk:
             print("Y is outside of boundary [0,", HEIGHT, "]")
         return False
@@ -123,18 +128,64 @@ def point_valid(x, y, talk = True):
         return False
     return True
 
-def test_point():
+
+def sanity_check():
     for i in range(100000):
-        x = randint(0,400)
+        x = randint(0, 400)
         y = randint(0, 300)
         if point_valid(x, y):
-            pygame.draw.circle(board, RED, [x, HEIGHT - y], 1 * SCALE)
+            pygame.draw.circle(board, RED, [x * SCALE, (HEIGHT - y) * SCALE], 1 * SCALE)
         else:
-            pygame.draw.circle(board, GREEN, [x, HEIGHT - y], 1 * SCALE)
+            pygame.draw.circle(board, GREEN, [x * SCALE, (HEIGHT - y) * SCALE], 1 * SCALE)
         pygame.display.update()
 
+def get_point_from_user(word):
+    valid = False
+    while not valid:
+        x = int(input("Enter the X coordinate of the "+word+" point: "))
+        y = int(input("Enter the Y coordinate of the " + word + " point: "))
+        valid = point_valid(x, y, True)
+    return x, y
+
+
+def random_point():
+    valid = False
+    while not valid:
+        x = randint(0, WIDTH)
+        y = randint(0, HEIGHT)
+        valid = point_valid(x, y, False)
+    return x, y
+
+
+def get_initial_conditions(human=True):
+    if human:
+        x1, y1 = get_point_from_user("start")
+        x2, y2 = get_point_from_user("target")
+    else:
+        x1, y1 = random_point()
+        x2, y2 = random_point()
+    return Node(x1, y1, None), Node(x2, y2, None)
+
+
+def get_neighbors(parent):
+    neighbors = []
+    for i in range(-1, 1):
+        for j in range(-1, 1):
+            if i == j == 0:
+                continue
+            if point_valid(parent.x + i, parent.y + j, False):
+                neighbors.append(Node(parent.x, parent.y, parent))
+    return neighbors
+
+def BFS():
+    to_explore = [start]
+    # target has been found
+
 if __name__ == "__main__":
-    makeBoard()
+    start, target = get_initial_conditions()
+    BFS()
+    make_board()
     pygame.display.update()
-    test_point()
+    # back track for path
+    # display explored nodes and path
     time.sleep(50)
