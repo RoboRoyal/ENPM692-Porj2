@@ -29,7 +29,7 @@ If you enter an invalid point, it will re-prompt you
 
 Known issues:
 a* does not always return the shortest possible path.
-I think there is a problem with the heuristic. 
+I think there is a problem with the adding better nodes to the list in order. 
 
 
 

@@ -30,9 +30,12 @@ path = []
 SQRT2 = math.sqrt(2)
 nodes = None
 
+# distance between two points
 def distance(x1,y1,x2,y2):
     return math.sqrt(pow((x2-x1), 2)+pow((y2-y1), 2))
 
+
+# class to keep track of each place visited
 class Node:
     def __init__(self, x, y, parent, dist=0):
         self.x = x
@@ -45,16 +48,20 @@ class Node:
         else:
             self.path_length = 0
             self.g = 0
-    def huristic(self):
+
+    def heuristic(self):  # a* heuristic
         return distance(self.x, self.y, target.x, target.y) + self.g
+
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
 
     def __str__(self):
         return "["+str(self.x)+", "+str(self.y) + "]"
+
     def __lt__(self, other):
         return self.path_length < other.path_length
 
+# makes default board
 def make_board():
     global board
     pygame.init()
@@ -89,12 +96,14 @@ def make_board():
                          (286 * SCALE, (HEIGHT - 105) * SCALE), (325 * SCALE, (HEIGHT - 143) * SCALE)])
 
 
+# check if point in circle
 def in_circle(x, y):
     if math.pow(x - 90, 2) + math.pow(y - 70, 2) >= 1225:
         return False
     return True
 
 
+# check if point in ellipse
 def in_ellipse(x, y):
     center_x = 246
     center_y = 146
@@ -105,6 +114,8 @@ def in_ellipse(x, y):
         return True
     return False
 
+
+# check if point in C-shape
 def in_c_shape(x, y):
     if (x >= 200 and x <= 210 and y <= 280 and y >= 230) or \
         (x >= 210 and x <= 230 and y >= 270 and y <= 280) or \
@@ -112,6 +123,8 @@ def in_c_shape(x, y):
         return True
     return False
 
+
+# check if point in weird polygon
 def in_poly(x, y):
     if ((y - 1 * x + 181.6) < 0 and (y + 0.3 * x - 239.9) < 0 and (y + 249.2 * x - 95054.25) <
         0 and (y - x + 265) > 0 and (y + 1 * x - 389.3) > 0) or \
@@ -120,6 +133,7 @@ def in_poly(x, y):
     return False
 
 
+# check if point in rotated rectangle
 def in_line_segment(x, y):
     if (y + 1.4 * x - 176.5) > 0 and (y - 0.7 * x - 74.4) > 0 \
         and (y - 0.7 * x - 98.8) < 0 and (y + 1.4 * x - 438.1) < 0:
@@ -127,6 +141,7 @@ def in_line_segment(x, y):
     return False
 
 
+# # check if point is in any obstacle
 def in_obstacle(x, y):
     if in_circle(x, y) or in_ellipse(x, y) or in_c_shape(x, y) or \
             in_line_segment(x, y) or in_poly(x, y):
@@ -134,6 +149,7 @@ def in_obstacle(x, y):
     return False
 
 
+# check if point inside boundaries and not in any obstacle
 def point_valid(x, y, talk=True):
     if x < 0 or x >= WIDTH:
         if talk:
@@ -150,6 +166,7 @@ def point_valid(x, y, talk=True):
     return True
 
 
+# checks to ensure visual and mathematical models of obstacles match
 def sanity_check():
     for i in range(100000):
         x = randint(0, 400)
@@ -161,6 +178,7 @@ def sanity_check():
         pygame.display.update()
 
 
+# gets single valid point from user
 def get_point_from_user(word):
     valid = False
     while not valid:
@@ -170,6 +188,7 @@ def get_point_from_user(word):
     return x, y
 
 
+# get single valid random point
 def random_point():
     valid = False
     while not valid:
@@ -179,6 +198,7 @@ def random_point():
     return x, y
 
 
+# gets valid start and target point
 def get_initial_conditions(human=True):
     if human:
         x1, y1 = get_point_from_user("start")
@@ -189,6 +209,7 @@ def get_initial_conditions(human=True):
     return Node(x1, y1, None), Node(x2, y2, None)
 
 
+# returns list of nodes of all valid neighbors
 def get_neighbors(parent):
     neighbors = []
     for i in range(-1, 2):
@@ -203,76 +224,91 @@ def get_neighbors(parent):
                 neighbors.append(new_node)
     return neighbors
 
+
+# breath-first search
 def BFS():
     to_explore = PriorityQueue()
     to_explore.put(start)
-    to_explore_check = {}
-    to_explore_check[str(start)] = True
+    to_explore_check = {str(start): True}  # dict to make faster checks
     explored = {}
     itt = 0
     while not to_explore.empty():
-        next_node = to_explore.get()
-        if real_time:
+        next_node = to_explore.get()  # get next node
+        to_explore_check.pop(str(next_node))
+        nodes_visited.append(next_node)
+        explored[str(next_node)] = True
+
+        if real_time:  # plot in real time
             itt = itt + 1
             if itt % 50 == 0:
                 pygame.display.update()
                 pygame.event.get()
             pygame.draw.rect(board, CYAN, [next_node.x * SCALE, (HEIGHT - next_node.y) * SCALE, 2 * SCALE, 2 * SCALE])
 
-        to_explore_check.pop(str(next_node))
-
-        nodes_visited.append(next_node)
-        explored[str(next_node)] = True
-        if next_node == target:
+        if next_node == target:  # check if done
             print("Found path")
             target.parent = next_node.parent
             return
-        new_nodes = get_neighbors(next_node)
+
+        new_nodes = get_neighbors(next_node)  # get neighbors
         for new_node in new_nodes:
+            # add them to list to check if they are new
             if str(new_node) not in explored and str(new_node) not in to_explore_check:
                 to_explore.put(new_node)
                 to_explore_check[str(new_node)] = True
     print("No path")
-    # target has been found
 
 
+# a* search
 def a_star():
-    open = [(start.huristic(), start)]
-    closed = []
+    open = [(start.heuristic(), start)]
+    open_check = {str(start): 1}
+    closed = {}
     itt = 0
     while len(open) > 0:
-        open.sort(reverse=True)
+        open.sort(reverse=True)  # get next node and mark dict
         tmp = open.pop()
         next_node = tmp[1]
+        open_check[str(next_node)] = open_check[str(next_node)] - 1
+        if open_check[str(next_node)] == 0:
+            open_check.pop(str(next_node))
 
-        if real_time:
+        if real_time:  # print if in real time
             itt = itt + 1
             if itt % 50 == 0:
                 pygame.display.update()
                 pygame.event.get()
             pygame.draw.rect(board, CYAN, [next_node.x * SCALE, (HEIGHT - next_node.y) * SCALE, 2 * SCALE, 2 * SCALE])
 
-        closed.append(next_node)
-        if next_node == target:
+        closed[str(next_node)] = True
+        if next_node == target:  # check if found
             target.parent = next_node.parent
-            print(len(closed))
             return
         nodes_visited.append(next_node)
         neighbors = get_neighbors(next_node)
-        for neighbor in neighbors:
-            if neighbor in closed:
+        for neighbor in neighbors:  # get neighbors and check if they have been checked yet
+            if str(neighbor) in closed:
                 continue
-            if add_to_open(open, neighbor) == True:
-                open.append((neighbor.huristic(), neighbor))
+            if add_to_open(open, open_check, neighbor):  # see if we need to add it
+                open.append((neighbor.heuristic(), neighbor))
+                if str(neighbor) in open_check:  # update dict
+                    open_check[str(neighbor)] = open_check[str(neighbor)] + 1
+                else:
+                    open_check[str(neighbor)] = 1
 
     return None
 
-def add_to_open(open, neighbor):
-    for node in open:
-        if neighbor == node[1] and neighbor.huristic() >= node[1].huristic():
-            return False
+
+# check if new node needs to be added to open list
+def add_to_open(open, open_check, neighbor):
+    if str(neighbor) in open_check:
+        for node in open:
+            if neighbor == node[1] and neighbor.g < node[1].g:
+                return False
     return True
 
+
+# work back from target to get path to start
 def back_track():
     n = target
     while n:
@@ -280,6 +316,7 @@ def back_track():
         n = n.parent
 
 
+# adds all visted nodes, the path, start and end points to board
 def add_points():
     pygame.draw.circle(board, GREEN, [start.x * SCALE, (HEIGHT - start.y) * SCALE], 4 * SCALE)
     pygame.draw.circle(board, MAGENTA, [target.x * SCALE, (HEIGHT - target.y) * SCALE], 4 * SCALE)
@@ -287,34 +324,31 @@ def add_points():
     print("Visited: ", len(nodes_visited))
     for point in nodes_visited:
         pygame.draw.rect(board, CYAN, [point.x * SCALE, (HEIGHT - point.y) * SCALE, 2 * SCALE, 2 * SCALE])
-        # pygame.display.update()
     pygame.display.update()
     pygame.draw.circle(board, GREEN, [start.x * SCALE, (HEIGHT - start.y) * SCALE], 4 * SCALE)
     pygame.draw.circle(board, MAGENTA, [target.x * SCALE, (HEIGHT - target.y) * SCALE], 4 * SCALE)
     print("Path: ", len(path))
     for point in path:
         pygame.draw.rect(board, RED, [point.x * SCALE, (HEIGHT - point.y) * SCALE, 2 * SCALE, 2 * SCALE])
-        # pygame.display.update()
     pygame.display.update()
 
 
 if __name__ == "__main__":
     mode = int(input("Choose 1 for a* or 2 for breath first search: "))
-    start, target = get_initial_conditions()
-    #real_time = True
+    start, target = get_initial_conditions(True)
     print("Finding path...")
-    #make_board()
-    #add_points()
+    real_time = True
+    if real_time:
+        make_board()
+        add_points()
+
     if mode == 1:
         a_star()
     else:
         BFS()
-        # breath_first_search()
     make_board()
     back_track()
     add_points()
-    #make_board()
-    #add_points()
     pygame.display.update()
     print("Done")
     time.sleep(50)
