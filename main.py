@@ -3,6 +3,7 @@
 #ENPM692-Porj2
 
 import math
+from queue import PriorityQueue
 import pygame
 import time
 from random import randint
@@ -14,6 +15,7 @@ SCALE = 2
 board = None
 start = None
 target = None
+real_time = False
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0, 255)
@@ -25,19 +27,33 @@ YELLOW = (255, 255, 0)
 
 nodes_visited = []
 path = []
+SQRT2 = math.sqrt(2)
+nodes = None
 
+def distance(x1,y1,x2,y2):
+    return math.sqrt(pow((x2-x1), 2)+pow((y2-y1), 2))
 
 class Node:
-    def __init__(self, x, y, parent):
+    def __init__(self, x, y, parent, dist=0):
         self.x = x
         self.y = y
         self.parent = parent
-
+        self.h = 0
+        if parent:
+            self.path_length = parent.path_length + dist
+            self.g = parent.g + 1
+        else:
+            self.path_length = 0
+            self.g = 0
+    def huristic(self):
+        return distance(self.x, self.y, target.x, target.y) + self.g
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
 
     def __str__(self):
         return "["+str(self.x)+", "+str(self.y) + "]"
+    def __lt__(self, other):
+        return self.path_length < other.path_length
 
 def make_board():
     global board
@@ -144,6 +160,7 @@ def sanity_check():
             pygame.draw.circle(board, GREEN, [x * SCALE, (HEIGHT - y) * SCALE], 1 * SCALE)
         pygame.display.update()
 
+
 def get_point_from_user(word):
     valid = False
     while not valid:
@@ -176,47 +193,128 @@ def get_neighbors(parent):
     neighbors = []
     for i in range(-1, 2):
         for j in range(-1, 2):
+            dist = SQRT2
             if i == j == 0:
                 continue
             if point_valid(parent.x + i, parent.y + j, False):
-                new_node = Node(parent.x + i, parent.y + j, parent)
-                if new_node in nodes_visited:
-                    continue
+                if i == 0 or j == 0:
+                    dist = 1
+                new_node = Node(parent.x + i, parent.y + j, parent, dist)
                 neighbors.append(new_node)
     return neighbors
 
 def BFS():
-    to_explore = [start]
-    while len(to_explore):
-        next_node = to_explore.pop(0)
-        print(next_node.x, next_node.y)
-        pygame.draw.circle(board, GREEN, [next_node.x * SCALE, (HEIGHT - next_node.y) * SCALE], 1 * SCALE)
-        pygame.display.update()
+    to_explore = PriorityQueue()
+    to_explore.put(start)
+    to_explore_check = {}
+    to_explore_check[str(start)] = True
+    explored = {}
+    itt = 0
+    while not to_explore.empty():
+        next_node = to_explore.get()
+        if real_time:
+            itt = itt + 1
+            if itt % 50 == 0:
+                pygame.display.update()
+                pygame.event.get()
+            pygame.draw.rect(board, CYAN, [next_node.x * SCALE, (HEIGHT - next_node.y) * SCALE, 2 * SCALE, 2 * SCALE])
+
+        to_explore_check.pop(str(next_node))
+
         nodes_visited.append(next_node)
+        explored[str(next_node)] = True
         if next_node == target:
             print("Found path")
+            target.parent = next_node.parent
             return
         new_nodes = get_neighbors(next_node)
         for new_node in new_nodes:
-            to_explore.append(new_node)
+            if str(new_node) not in explored and str(new_node) not in to_explore_check:
+                to_explore.put(new_node)
+                to_explore_check[str(new_node)] = True
     print("No path")
     # target has been found
 
+
+def a_star():
+    open = [(start.huristic(), start)]
+    closed = []
+    itt = 0
+    while len(open) > 0:
+        open.sort(reverse=True)
+        tmp = open.pop()
+        next_node = tmp[1]
+
+        if real_time:
+            itt = itt + 1
+            if itt % 50 == 0:
+                pygame.display.update()
+                pygame.event.get()
+            pygame.draw.rect(board, CYAN, [next_node.x * SCALE, (HEIGHT - next_node.y) * SCALE, 2 * SCALE, 2 * SCALE])
+
+        closed.append(next_node)
+        if next_node == target:
+            target.parent = next_node.parent
+            print(len(closed))
+            return
+        nodes_visited.append(next_node)
+        neighbors = get_neighbors(next_node)
+        for neighbor in neighbors:
+            if neighbor in closed:
+                continue
+            if add_to_open(open, neighbor) == True:
+                open.append((neighbor.huristic(), neighbor))
+
+    return None
+
+def add_to_open(open, neighbor):
+    for node in open:
+        if neighbor == node[1] and neighbor.huristic() >= node[1].huristic():
+            return False
+    return True
+
 def back_track():
-    next = target
-    while next != start:
-        print(next)
-        path.append(next)
-        next = next.parent
+    n = target
+    while n:
+        path.append(n)
+        n = n.parent
+
+
+def add_points():
+    pygame.draw.circle(board, GREEN, [start.x * SCALE, (HEIGHT - start.y) * SCALE], 4 * SCALE)
+    pygame.draw.circle(board, MAGENTA, [target.x * SCALE, (HEIGHT - target.y) * SCALE], 4 * SCALE)
+    pygame.display.update()
+    print("Visited: ", len(nodes_visited))
+    for point in nodes_visited:
+        pygame.draw.rect(board, CYAN, [point.x * SCALE, (HEIGHT - point.y) * SCALE, 2 * SCALE, 2 * SCALE])
+        # pygame.display.update()
+    pygame.display.update()
+    pygame.draw.circle(board, GREEN, [start.x * SCALE, (HEIGHT - start.y) * SCALE], 4 * SCALE)
+    pygame.draw.circle(board, MAGENTA, [target.x * SCALE, (HEIGHT - target.y) * SCALE], 4 * SCALE)
+    print("Path: ", len(path))
+    for point in path:
+        pygame.draw.rect(board, RED, [point.x * SCALE, (HEIGHT - point.y) * SCALE, 2 * SCALE, 2 * SCALE])
+        # pygame.display.update()
+    pygame.display.update()
 
 
 if __name__ == "__main__":
+    mode = int(input("Choose 1 for a* or 2 for breath first search: "))
     start, target = get_initial_conditions()
+    #real_time = True
+    print("Finding path...")
+    #make_board()
+    #add_points()
+    if mode == 1:
+        a_star()
+    else:
+        BFS()
+        # breath_first_search()
     make_board()
-    BFS()
-
+    back_track()
+    add_points()
+    #make_board()
+    #add_points()
     pygame.display.update()
-    # back track for path
-    # display explored nodes and path
-    print(path)
-    # time.sleep(50)
+    print("Done")
+    time.sleep(50)
