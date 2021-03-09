@@ -314,30 +314,47 @@ def back_track():
     while n:
         path.append(n)
         n = n.parent
+    path.reverse()
 
 
-# adds all visted nodes, the path, start and end points to board
+# adds all visited nodes, the path, start and end points to board
 def add_points():
     pygame.draw.circle(board, GREEN, [start.x * SCALE, (HEIGHT - start.y) * SCALE], 4 * SCALE)
     pygame.draw.circle(board, MAGENTA, [target.x * SCALE, (HEIGHT - target.y) * SCALE], 4 * SCALE)
     pygame.display.update()
     print("Visited: ", len(nodes_visited))
+    clock = pygame.time.Clock()
+    itt = 0
     for point in nodes_visited:
         pygame.draw.rect(board, CYAN, [point.x * SCALE, (HEIGHT - point.y) * SCALE, 2 * SCALE, 2 * SCALE])
+        if itt % 10 == 0:
+            pygame.display.update()
+            pygame.event.get()
+        itt = itt + 1
+        clock.tick(4000)
     pygame.display.update()
     pygame.draw.circle(board, GREEN, [start.x * SCALE, (HEIGHT - start.y) * SCALE], 4 * SCALE)
     pygame.draw.circle(board, MAGENTA, [target.x * SCALE, (HEIGHT - target.y) * SCALE], 4 * SCALE)
     print("Path: ", len(path))
     for point in path:
         pygame.draw.rect(board, RED, [point.x * SCALE, (HEIGHT - point.y) * SCALE, 2 * SCALE, 2 * SCALE])
+        if itt % 10 == 0:
+            pygame.display.update()
+            pygame.event.get()
+        itt = itt + 1
+        clock.tick(100)
     pygame.display.update()
+    if path:
+        print("Path length: ", path[1].path_length)
 
 
 if __name__ == "__main__":
-    mode = int(input("Choose 1 for a* or 2 for breath first search: "))
-    start, target = get_initial_conditions(True)
+    # mode = int(input("Choose 1 for a* or 2 for breath first search: "))
+    mode = 2
+    start, target = get_initial_conditions(False)
     print("Finding path...")
-    real_time = True
+    real_time = False
+
     if real_time:
         make_board()
         add_points()
@@ -346,9 +363,15 @@ if __name__ == "__main__":
         a_star()
     else:
         BFS()
+
     make_board()
     back_track()
     add_points()
     pygame.display.update()
     print("Done")
-    time.sleep(50)
+    for i in range(51):
+        time.sleep(1)
+        events = pygame.event.get()
+        for event in events:
+            if event.type == pygame.QUIT:
+                raise SystemExit
