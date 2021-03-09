@@ -351,7 +351,7 @@ def add_points():
 if __name__ == "__main__":
     # mode = int(input("Choose 1 for a* or 2 for breath first search: "))
     mode = 2
-    start, target = get_initial_conditions(False)
+    start, target = get_initial_conditions(True)
     print("Finding path...")
     real_time = False
 
